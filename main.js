@@ -65,6 +65,8 @@ async function start() {
     localVideo.srcObject = stream;
     localStream = stream;
     callButton.disabled = false;
+
+    call()
   } catch (e) {
     alert(`getUserMedia() error: ${e.name}`);
   }
@@ -78,6 +80,7 @@ function getSelectedSdpSemantics() {
 
 function addOpusStereo(sdp){
   let StereoValue = navigator.userAgent.indexOf('Chrome') >= 0 ? 1 : 0
+  console.warn("StereoValue: " + StereoValue)
 
   let lines = sdp.split('\n')
   let opusPT
@@ -88,17 +91,22 @@ function addOpusStereo(sdp){
       opusPT = lines[i].split(' ')[0].split(':')[1]
       console.warn("get opus PT: " + opusPT)
       index = i
-      continue
+      break
     }
+  }
 
-    if(opusPT){
+  if(opusPT){
+    for(let i = 0; i<lines.length; i++){
       let opusTarget = 'a=fmtp:' + opusPT
-      console.info('opusTarget: ' + opusTarget)
       if(lines[i].indexOf(opusTarget) >= 0){
-        if(lines[i].split(' ').length > 1){
-          lines[i] = lines[i] + ';stereo=' + StereoValue
+        if(lines[i].indexOf('stereo=') >= 0){
+          lines[i] = lines[i].replace(/stereo=([0-9]){1,}/, 'stereo=' + StereoValue);
         }else {
-          lines[i] = lines[i] + ' stereo=' + StereoValue
+          if(lines[i].split(' ').length > 1){
+            lines[i] = lines[i] + ';stereo=' + StereoValue
+          }else {
+            lines[i] = lines[i] + ' stereo=' + StereoValue
+          }
         }
         isAdd = true
         break
@@ -106,15 +114,10 @@ function addOpusStereo(sdp){
     }
   }
 
-  // if(!isAdd){
-  //   lines[lines.length-1] = "a=fmtp:" + opusPT + " stereo=" + StereoValue
-  //   lines.push('\r\n')
-  // }
-
   sdp = lines.join('\n')
-
   return sdp
 }
+
 
 async function call() {
   callButton.disabled = true;
